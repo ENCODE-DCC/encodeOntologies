@@ -1,14 +1,14 @@
 elasticsearch
 =============
 
-Python module downloads Uberon, Cell Ontology and OBI ontology and parses into a dictionary.
+This module downloads Uberon, Cell Ontology, OBI ontology and parses into a dictionary.
 At the end entire dictionary is indexed in Elastic Search
 
 Requirements:
 
 1. pyelasticsearch package - https://github.com/rhec/pyelasticsearch
 2. Elastic Search should be installed on localhost or on different server (edit module accordingly)
-3. Run following commands to generate the mapping for the 'index' and 'doc_type' in elastic search
+3. Run following commands to generate the mapping for the 'index' and 'doc_type' in elastic search. It also uses custom tokenizer to index 'name' of each GO Term.
 
 Following command sets the analyzer for description
 <code>
