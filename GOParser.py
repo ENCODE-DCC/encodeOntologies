@@ -125,14 +125,16 @@ for url in urls:
                             terms[termParent] = {'parents':[], 'children':[]}
                         terms[termParent]['children'].append(termID)
             except KeyError:
-                print "Term doesn't have the name"
+                print "Term doesn't have the name - " + termID
         else:
+            print 
             break
 
+print "Indexing the data in ElasticSearch..."
 for term in terms:
     counter += 1
     connection.index(index_name, doc_type_name, terms[term], id=counter)
     connection.refresh()
 
+print
 print "Total GO Terms indexed " + str(counter)
-print counter
