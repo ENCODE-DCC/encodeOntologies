@@ -1,4 +1,4 @@
-elasticsearch
+encodedES
 =============
 
 This module downloads Uberon, Cell Ontology, OBI ontology and parses into a dictionary.
