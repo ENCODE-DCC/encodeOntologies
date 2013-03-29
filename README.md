@@ -77,3 +77,44 @@ curl -XGET 'http://localhost:9200/ontology/basic/_search?pretty=1' -d '{
 }
 '
 </code>
+
+
+To get mapping of the index run following command
+
+<code>curl -XGET 'http://localhost:9200/ontology/_mapping?pretty=1'</code>
+
+Mapping shoulb be as follows: 
+<code>
+{
+  "ontology" : {
+    "basic" : {
+      "properties" : {
+        "children" : {
+          "type" : "string"
+        },
+        "description" : {
+          "type" : "multi_field",
+          "fields" : {
+            "name" : {
+              "type" : "string",
+              "analyzer" : "standard",
+              "include_in_all" : false
+            },
+            "suggestions" : {
+              "type" : "string",
+              "analyzer" : "suggestions",
+              "include_in_all" : false
+            }
+          }
+        },
+        "parents" : {
+          "type" : "string"
+        },
+        "termID" : {
+          "type" : "string"
+        }
+      }
+    }
+  }
+}
+</code>
