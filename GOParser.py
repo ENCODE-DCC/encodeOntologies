@@ -1,9 +1,5 @@
 # Module downloads, parses all ontology files and indexes them in Elastic Search
 # Note: This is the basic version
-
-import os
-import json
-
 from pyelasticsearch import *
 from urllib2 import Request, urlopen, URLError, HTTPError
 
@@ -133,7 +129,6 @@ for url in urls:
         else:
             break
 
-counter = 0
 for term in terms:
     counter += 1
     connection.index(index_name, doc_type_name, terms[term], id=counter)
