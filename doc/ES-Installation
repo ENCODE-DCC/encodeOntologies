@@ -1,0 +1,30 @@
+
+wnload the latest version of the elastic search from here -
+http://github.com/downloads/elasticsearch/elasticsearch-*.tar.gz
+
+Unpack the tar file in the download directory. This should create a directory "~/Downloads/elasticsearch-*"
+
+Pull down the elastic search service wrapper from Github.
+
+<code>
+cd ~/Downloads 
+</code>
+<code>
+git clone https://github.com/elasticsearch/elasticsearch-servicewrapper.git elasticsearch-servicewrapper
+</code>
+ 
+Now we will move the service into place
+
+<code>cd ~/Downloads</code>
+<code>sudo mv elasticsearch-* /use/local/share</code>
+<code>cd elasticsearch-servicewrapper</code>
+<code>sudo mv service /usr/local/share/elasticsearch-*/bin</code>
+<code>cd /usr/local/share</code>
+<code>sudo ln -s elasticsearch-* elastic search</code>
+<code>sudo chown -R root:wheel elasticsearch</code>
+
+Now start up the service
+<code>
+cd /usr/local/share/elasticsearch</code>
+
+<code>sudo bin/service/elasticsearch start</code>
