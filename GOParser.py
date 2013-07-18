@@ -1,13 +1,13 @@
 # Module downloads, parses all ontology files and indexes them in Elastic Search
 # Note: This is the basic version
 from pyelasticsearch import *
-from urllib2 import Request, urlopen, URLError, HTTPError
+from urllib2 import Request, urlopen
 
 uberonURL = "http://purl.obolibrary.org/obo/uberon.obo"
 cellOntologyURL = "http://purl.obolibrary.org/obo/cl.obo"
 obiURL = "http://purl.obolibrary.org/obo/obi/obi.obo"
 
-urls = [uberonURL, cellOntologyURL, obiURL]
+urls = [uberonURL]
 
 #make connection to elastic search
 connection = ElasticSearch('http://localhost:9200')
@@ -49,7 +49,7 @@ def getDescendents(goid):
 
     recursiveArray = [goid]
     if terms.has_key(goid):
-        children = terms[goid]['c']
+        children = terms[goid]['children']
         if len(children) > 0:
             for child in children:
                 recursiveArray.extend(getDescendents(child))
@@ -62,10 +62,23 @@ def getAncestors(goid):
 
     recursiveArray = [goid]
     if terms.has_key(goid):
-        parents = terms[goid]['p']
+        parents = terms[goid]['parents']
         if len(parents) > 0:
             for parent in parents:
                 recursiveArray.extend(getAncestors(parent))
+
+    return set(recursiveArray)
+
+
+def getRelatedTerms(goid):
+    ''' Get relatinos of GO ID'''
+
+    recursiveArray = [goid]
+    if terms.has_key(goid):
+        relations = terms[goid]['relations']
+        if len(relations) > 0:
+            for relation in relations:
+                recursiveArray.extend(getAncestors(relation))
 
     return set(recursiveArray)
 
@@ -77,6 +90,7 @@ print "Starting...."
 print
 
 terms = {}
+stupid_terms = []
 
 for url in urls:
 
@@ -92,43 +106,68 @@ for url in urls:
     #infinite loop to go through the obo file.
     #Breaks when the term returned is empty, indicating end of file
     while 1:
-        
         #get the term using the two parsing functions
         term = parseTagValue(getTerm(oboFile))
-        
         if len(term) != 0:
-            try:
-                termID = term['id'][0]
-                termName = term['name'][0]
+            # Handling root terms
+            if term['id'][0] == 'UBERON:0000000':
+                terms[term['id'][0]] = {'id': '', 'name': '', 'parents': [], 'children': [], 'relations': [], 'closure': []}
+                terms[term['id'][0]]['id'] = term['id'][0]
+                terms[term['id'][0]]['name'] = term['name'][0]
+            else:
+                try:
+                    termID = term['id'][0]
+                    termName = term['name'][0]
 
-                #only add to the structure if the term has a is_a tag
-                #the is_a value contain GOID and term definition
-                #we only want the GOID
-                if term.has_key('is_a'):
-                    termParents = [p.split()[0] for p in term['is_a']]
+                    if term.has_key('is_a'):
+                        termParents = [p.split()[0] for p in term['is_a']]
 
-                    if not terms.has_key(termID):
-                        #each goid will have two arrays of parents and children
-                        terms[termID] = {'termID':'', 'description': '',
-                         'parents':[], 'children':[]}
+                        if not terms.has_key(termID):
+                            #each goid will have two arrays of parents and children
+                            terms[termID] = {'id': '', 'name': '', 'parents': [], 'children': [], 'relations': [], 'closure': []}
 
-                    #append termID and termName to the dict
-                    terms[termID]['termID'] = termID
-                    terms[termID]['description'] = termName 
+                        #append termID and termName to the dict
+                        terms[termID]['id'] = termID
+                        terms[termID]['name'] = termName
 
-                    #append parents of the current term
-                    terms[termID]['parents'] = termParents
+                        #append parents of the current term
+                        terms[termID]['parents'] = termParents
 
-                    #for every parent term, add this current term as children
-                    for termParent in termParents:
-                        if not terms.has_key(termParent):
-                            terms[termParent] = {'parents':[], 'children':[]}
-                        terms[termParent]['children'].append(termID)
-            except KeyError:
-                print "Term doesn't have the name - " + termID
+                        #for every parent term, add this current term as children
+                        for termParent in termParents:
+                            if not terms.has_key(termParent):
+                                terms[termParent] = {'parents': [], 'children': []}
+                            terms[termParent]['children'].append(termID)
+                    if term.has_key('relationship'):
+                        relations = [p.split()[0] for p in term['relationship']]
+                        relationTerms = [p.split()[1] for p in term['relationship']]
+                        count = 0
+                        relationships = ['part_of', 'develops_from']
+                        for relation in relations:
+                            if relation in relationships:
+                                terms[termID]['relations'].append(relationTerms[count])
+                            count = count + 1
+
+                except KeyError:
+                    stupid_terms.append(termID)
         else:
-            print 
             break
+
+# Deleting all useless, time wasting terms
+for stupid_term in stupid_terms:
+    del(terms[stupid_term])
+
+# Generating closure from ancestors and relations
+for term in terms:
+    try:
+        ancestors = getAncestors(terms[term]['id'])
+        for ancestor in ancestors:
+            terms[term]['closure'].append(ancestor)
+        relations = getRelatedTerms(terms[term]['id'])
+        for relation in relations:
+            terms[term]['closure'].append(relation)
+    except KeyError:
+        pass
 
 print "Indexing the data in ElasticSearch..."
 for term in terms:
