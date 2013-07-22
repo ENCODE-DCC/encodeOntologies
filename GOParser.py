@@ -113,6 +113,7 @@ print "Starting...."
 print
 
 terms = {}
+# UBERON has 2 Roots god knows why, so one of the roots is entered manually here
 terms['UBERON:0001062'] = {'id': 'UBERON:0001062', 'name': 'anatomical entity', 'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'overlaps': [], 'closure': []}
 stupid_terms = []
 
@@ -199,7 +200,9 @@ for term in terms:
     # Get relationship terms and append to closure
     rels = getRelatedTerms(term, 'part_of')
     for rel in rels:
-        terms[term]['closure'].append(rel)
+        words = getAncestors(rel)
+        for word in words:
+            terms[term]['closure'].append(word)
 
     terms[term]['closure'] = list(set(terms[term]['closure']))
     devs = getRelatedTerms(term, 'develops_from')
