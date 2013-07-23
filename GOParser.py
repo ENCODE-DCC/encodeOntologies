@@ -200,25 +200,43 @@ for term in terms:
     # Get relationship terms and append to closure
     rels = getRelatedTerms(term, 'part_of')
     for rel in rels:
-        words = getAncestors(rel)
+        words1 = getAncestors(rel)
+        words2 = getRelatedTerms(rel, 'part_of')
+        words3 = getRelatedTerms(rel, 'develops_from')
+        words4 = getRelatedTerms(rel, 'overlaps')
+        words = words1 | words2 | words3 | words4
         for word in words:
             terms[term]['closure'].append(word)
 
     terms[term]['closure'] = list(set(terms[term]['closure']))
     devs = getRelatedTerms(term, 'develops_from')
     for dev in devs:
-        terms[term]['closure'].append(dev)
+        words1 = getAncestors(dev)
+        words2 = getRelatedTerms(dev, 'part_of')
+        words3 = getRelatedTerms(dev, 'develops_from')
+        words4 = getRelatedTerms(dev, 'overlaps')
+        words = words1 | words2 | words3 | words4
+        for words in words:
+            terms[term]['closure'].append(dev)
 
     terms[term]['closure'] = list(set(terms[term]['closure']))
     overs = getRelatedTerms(term, 'overlaps')
     for over in overs:
+        words1 = getAncestors(over)
+        words2 = getRelatedTerms(over, 'part_of')
+        words3 = getRelatedTerms(over, 'develops_from')
+        words4 = getRelatedTerms(over, 'overlaps')
+        words = words1 | words2 | words3 | words4
         terms[term]['closure'].append(over)
 
     terms[term]['closure'] = list(set(terms[term]['closure']))
     ancestors = getAncestors(terms[term]['id'])
     for ancestor in ancestors:
         terms[term]['closure'].append(ancestor)
-        nodes = getRelatedTerms(ancestor, 'part_of')
+        nodes1 = getRelatedTerms(ancestor, 'part_of')
+        nodes2 = getRelatedTerms(ancestor, 'develops_from')
+        nodes3 = getRelatedTerms(ancestor, 'overlaps')
+        nodes = nodes1 | nodes2 | nodes3
         for node in nodes:
             terms[term]['closure'].append(node)
 
