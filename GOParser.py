@@ -2,7 +2,6 @@
 # Note: This is the basic version
 from pyelasticsearch import ElasticSearch
 from urllib2 import Request, urlopen
-from collections import OrderedDict
 
 uberonURL = "http://svn.code.sf.net/p/obo/svn/uberon/trunk/merged.obo"
 urls = [uberonURL]
@@ -13,8 +12,6 @@ connection = ElasticSearch('http://localhost:9200')
 index_name = "ontology"
 doc_type_name = "basic"
 
-import sys
-sys.setrecursionlimit(20000)
 
 def getTerm(stream):
     ''' Get GO term block from the obo file'''
@@ -181,7 +178,7 @@ counter = 0
 print "Starting...."
 print
 
-terms = OrderedDict()
+terms = {}
 root_terms = ['UBERON:0000000', 'UBERON:0001062', 'CL:0000000', 'CHEBI:50906', 'CHEBI:24431', 'CHEBI:36342', 'GO:0003674', 'GO:0005575', 'GO:0008150', 'IAO:0000030', 'PATO:0000001', 'PR:000018263', 'NCBITaxon:1']
 stupid_terms = []
 
