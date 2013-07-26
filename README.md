@@ -1,7 +1,7 @@
 encodedES
 =============
 
-This module downloads Uberon, Cell Ontology, OBI ontology and parses into a dictionary.
+This module downloads Uberon (merged) ontology and parses into a dictionary.
 At the end entire dictionary is indexed in Elastic Search.
 
 For each term a closure is calculated by traversing the 'is_a', 'part_of' and 'develops_from' relationships to the root.
