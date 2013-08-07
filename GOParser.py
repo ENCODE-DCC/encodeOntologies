@@ -275,18 +275,18 @@ for term in terms:
         terms[term]['closure'].append(word)
 
     terms[term]['closure'] = list(set(terms[term]['closure']))
+    terms[term]['closure'].append(term)
     terms[term]['systems'] = getSystemSlims(term)
     terms[term]['organs'] = getOrganSlims(term)
 
 count = 0
 for term in terms:
-    del(terms[term]['children'])
     del(terms[term]['part_of'])
     del(terms[term]['develops_from'])
+    del(terms[term]['children'])
     del(terms[term]['parents'])
     del(terms[term]['data'])
-    # import pdb; pdb.set_trace();
-    connection.index(index_name, doc_type_name, terms[term], id=count)
+    connection.index(index_name, doc_type_name, terms[term], id=term)
     connection.refresh()
     count = count + 1
 
