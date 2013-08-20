@@ -86,6 +86,22 @@ def iterativeChildren(nodes):
     return results
 
 
+def getDevelopmentlims(goid):
+    ''' Get Developmental Slims '''
+
+    slims = []
+    slimTerms = {
+        'UBERON:0003263': 'mesoderm',
+        'UBERON:0000924': 'ectoderm',
+        'UBERON:0000925': 'endoderm'
+    }
+    for slimTerm in slimTerms:
+        if slimTerm in terms[term]['closure']:
+            slims.append(slimTerms[slimTerm])
+    return slims
+
+
+
 def getSystemSlims(goid):
     ''' Get System Slims '''
 
