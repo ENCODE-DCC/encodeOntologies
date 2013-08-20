@@ -87,7 +87,7 @@ def iterativeChildren(nodes):
 
 
 def getSystemSlims(goid):
-    ''' Get Slims '''
+    ''' Get System Slims '''
 
     slims = []
     slimTerms = {
