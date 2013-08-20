@@ -98,10 +98,12 @@ def getSystemSlims(goid):
         'UBERON:0001007': 'digestive system',
         'UBERON:0001008': 'excretory system',
         'UBERON:0001009': 'circulatory system',
-        'UBERON:0001016': 'nervous system',
         'UBERON:0001434': 'skeletal system',
         'UBERON:0002405': 'immune system',
-        'UBERON:0002416': 'integumental system'
+        'UBERON:0002416': 'integumental system',
+        'UBERON:0001032': 'sensory system',
+        'UBERON:0001017': 'central nervous system',
+        'UBERON:0000010': 'peripheral nervous system'
     }
     for slimTerm in slimTerms:
         if slimTerm in terms[term]['closure']:
