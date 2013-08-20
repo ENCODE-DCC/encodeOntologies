@@ -132,7 +132,7 @@ def getOrganSlims(goid):
         'UBERON:0000970': 'eye',
         'UBERON:0000991': 'gonad',
         'UBERON:0001043': 'esophagus',
-        'UBERON:0001255': 'urinay bladder',
+        'UBERON:0001255': 'urinary bladder',
         'UBERON:0001264': 'pancreas',
         'UBERON:0001474': 'bone element',
         'UBERON:0002003': 'peripheral nerve',
@@ -166,7 +166,8 @@ def getOrganSlims(goid):
         'UBERON:0001911': 'mammary gland',
         'UBERON:0001630': 'muscle organ',
         'UBERON:0000007': 'pituitary gland',
-        'UBERON:0002370': 'thymus'
+        'UBERON:0002370': 'thymus',
+        'UBERON:0000478': 'extraembryonic structure'
     }
     for slimTerm in slimTerms:
         if slimTerm in terms[term]['closure']:
