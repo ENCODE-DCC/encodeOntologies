@@ -9,7 +9,7 @@ urls = [uberonURL]
 #make connection to elastic search
 connection = ElasticSearch('http://localhost:9200')
 
-index_name = "ontology"
+index_name = "ontology-new"
 doc_type_name = "basic"
 
 
@@ -246,8 +246,6 @@ for url in urls:
                                         if not termParent in terms:
                                             terms[termParent] = {'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'organs': [], 'closure': [], 'slims': [], 'data': []}
                                         terms[termParent]['children'].append(termID)
-                                else:
-                                    print termParent
                             if 'relationship' in term:
                                 relations = [p.split()[0] for p in term['relationship']]
                                 relationTerms = [p.split()[1] for p in term['relationship']]
@@ -293,7 +291,7 @@ for useL in useless:
 print "Take a break, I have to calculate closures for " + str(len(terms)) + " ontology terms and index them in elasticsearch. Long operation. Sigh!!"
 
 for term in terms:
-    terms[term]['data'] = list(set(terms[term]['parents']) | set(terms[term]['part_of']))
+    terms[term]['data'] = list(set(terms[term]['parents']) | set(terms[term]['part_of']) | set(terms[term]['develops_from']))
 
 count = 0
 

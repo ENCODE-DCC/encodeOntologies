@@ -1,15 +1,17 @@
 # Module downloads, parses all ontology files and indexes them in Elastic Search
 # Note: This is the basic version
+import networkx as nx
+
 from pyelasticsearch import ElasticSearch
 from urllib2 import Request, urlopen
 
-uberonURL = "http://svn.code.sf.net/p/obo/svn/uberon/trunk/merged.obo"
+uberonURL = "http://svn.code.sf.net/p/obo/svn/uberon/trunk/composite-vertebrate.obo"
 urls = [uberonURL]
 
 #make connection to elastic search
 connection = ElasticSearch('http://localhost:9200')
 
-index_name = "ontology-new"
+index_name = "ontology-tree"
 doc_type_name = "basic"
 
 
@@ -34,7 +36,7 @@ def parseTagValue(term):
     for line in term:
         tag = line.split(': ', 1)[0]
         value = line.split(': ', 1)[1]
-        if not data.has_key(tag):
+        if not tag in data:
             data[tag] = []
         data[tag].append(value)
 
@@ -45,7 +47,7 @@ def getDescendents(goid):
     ''' Get Descendents of Go Term '''
 
     recursiveArray = [goid]
-    if terms.has_key(goid):
+    if goid in terms:
         children = terms[goid]['children']
         if len(children) > 0:
             for child in children:
@@ -58,7 +60,7 @@ def getAncestors(goid):
     ''' Get Ancestors of GO ID '''
 
     recursiveArray = [goid]
-    if terms.has_key(goid):
+    if goid in terms:
         parents = terms[goid]['parents']
         if len(parents) > 0:
             for parent in parents:
@@ -68,13 +70,12 @@ def getAncestors(goid):
 
 
 def iterativeChildren(nodes):
+    ''' Traverse the tree for the give set of nodes'''
+
     results = []
-    print "Calulating closure ..."
     while 1:
         newNodes = []
         if len(nodes) == 0:
-            print "****** Done *******"
-            print
             break
         for node in nodes:
             results.append(node)
@@ -86,8 +87,23 @@ def iterativeChildren(nodes):
     return results
 
 
+def getDevelopmentSlims(goid):
+    ''' Get Developmental Slims '''
+
+    slims = []
+    slimTerms = {
+        'UBERON:0003263': 'mesoderm',
+        'UBERON:0000924': 'ectoderm',
+        'UBERON:0000925': 'endoderm'
+    }
+    for slimTerm in slimTerms:
+        if slimTerm in terms[term]['closure']:
+            slims.append(slimTerms[slimTerm])
+    return slims
+
+
 def getSystemSlims(goid):
-    ''' Get Slims '''
+    ''' Get System Slims '''
 
     slims = []
     slimTerms = {
@@ -182,7 +198,8 @@ print "Starting...."
 print
 
 terms = {}
-root_terms = ['UBERON:0000000', 'UBERON:0001062', 'CL:0000000', 'CHEBI:50906', 'CHEBI:24431', 'CHEBI:36342', 'GO:0003674', 'GO:0005575', 'GO:0008150', 'IAO:0000030', 'PATO:0000001', 'PR:000018263', 'NCBITaxon:1']
+root_terms = ['UBERON:0000000', 'UBERON:0001062', 'CL:0000000', 'CL:0000344', 'CHEBI:50906', 'CHEBI:24431', 'CHEBI:36342', 'GO:0003674', 'GO:0005575', 'GO:0008150', 'IAO:0000030', 'PATO:0000001', 'PR:000018263', 'NCBITaxon:1']
+term_prefixs = ['UBERON', 'CL', 'CHEBI', 'GO', 'IAO', 'PATO', 'PR', 'NCBITaxon']
 stupid_terms = []
 
 for url in urls:
@@ -203,41 +220,47 @@ for url in urls:
         term = parseTagValue(getTerm(oboFile))
         if len(term) != 0:
             if (term['id'][0]).find(':') != -1:
-                try:
-                    termID = term['id'][0]
-                    termName = term['name'][0]
+                if ((term['id'][0]).split(':'))[0] in term_prefixs:
+                    try:
+                        termID = term['id'][0]
+                        termName = ''
+                        try:
+                            termName = term['name'][0]
+                        except KeyError:
+                            pass
 
-                    if term.has_key('is_a'):
-                        termParents = [p.split()[0] for p in term['is_a']]
+                        if 'is_a' in term:
+                            termParents = [p.split()[0] for p in term['is_a']]
 
-                        if not terms.has_key(termID):
-                            #each goid will have two arrays of parents and children
-                            terms[termID] = {'id': '', 'name': '', 'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'organs': [], 'closure': [], 'slims': [], 'data': []}
+                            if not termID in terms:
+                                terms[termID] = {'id': '', 'name': '', 'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'organs': [], 'closure': [], 'slims': [], 'data': []}
 
-                        #append termID and termName to the dict
-                        terms[termID]['id'] = termID
-                        terms[termID]['name'] = termName
+                            #append termID and termName to the dict
+                            terms[termID]['id'] = termID
+                            terms[termID]['name'] = termName
 
-                        #append parents of the current term
-                        terms[termID]['parents'] = termParents
+                            #for every parent term, add this current term as children
+                            for termParent in termParents:
+                                if (termParent.split(':'))[0] in term_prefixs:
+                                    if termParent != 'CL:0000812':
+                                        terms[termID]['parents'].append(termParent)
+                                        if not termParent in terms:
+                                            terms[termParent] = {'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'organs': [], 'closure': [], 'slims': [], 'data': []}
+                                        terms[termParent]['children'].append(termID)
 
-                        #for every parent term, add this current term as children
-                        for termParent in termParents:
-                            if not terms.has_key(termParent):
-                                terms[termParent] = {'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'organs': [], 'closure': [], 'slims': [], 'data': []}
-                            terms[termParent]['children'].append(termID)
-                        if term.has_key('relationship'):
-                            relations = [p.split()[0] for p in term['relationship']]
-                            relationTerms = [p.split()[1] for p in term['relationship']]
-                            count = 0
-                            relationships = ['part_of', 'develops_from']
-                            for relation in relations:
-                                if relation in relationships:
-                                    terms[termID][relation].append(relationTerms[count])
-                                count = count + 1
-                    else:
-                        # Handling root terms for the uberon merged ontology
-                        if term['id'][0] in root_terms:
+                            # Handling relationships for each ontology term
+                            if 'relationship' in term:
+                                relations = [p.split()[0] for p in term['relationship']]
+                                relationTerms = [p.split()[1] for p in term['relationship']]
+                                count = 0
+                                relationships = ['part_of', 'develops_from']
+                                for relation in relations:
+                                    if relation in relationships:
+                                        if relationTerms[count] != 'CL:0000812':
+                                            if ((relationTerms[count]).split(':'))[0] in term_prefixs:
+                                                terms[termID][relation].append(relationTerms[count])
+                                    count = count + 1
+                        else:
                             if term['id'][0] not in terms:
                                 terms[termID] = {'id': '', 'name': '', 'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'organs': [], 'closure': [], 'slims': [], 'data': []}
                                 #append termID and termName to the dict
@@ -246,14 +269,17 @@ for url in urls:
                             else:
                                 terms[termID]['id'] = termID
                                 terms[termID]['name'] = termName
-                except KeyError:
-                    stupid_terms.append(termID)
+                    except KeyError:
+                        stupid_terms.append(termID)
         else:
             break
 
 # Deleting all useless, time wasting terms
 for stupid_term in stupid_terms:
-    del(terms[stupid_term])
+    try:
+        del(terms[stupid_term])
+    except KeyError:
+        pass
 
 useless = []
 for term in terms:
@@ -270,28 +296,36 @@ print "Take a break, I have to calculate closures for " + str(len(terms)) + " on
 for term in terms:
     terms[term]['data'] = list(set(terms[term]['parents']) | set(terms[term]['part_of']))
 
+G = nx.DiGraph()
 
 for term in terms:
-    print term
     words = iterativeChildren(terms[term]['data'])
     for word in words:
         terms[term]['closure'].append(word)
-
-    terms[term]['closure'] = list(set(terms[term]['closure']))
-    terms[term]['closure'].append(term)
-    terms[term]['systems'] = getSystemSlims(term)
-    terms[term]['organs'] = getOrganSlims(term)
+    for parent in terms[term]['parents']:
+        G.add_edge(term, parent, r='is_a')
+    for part in terms[term]['part_of']:
+        G.add_edge(term, part, r='part_of')
 
 count = 0
-for term in terms:
-    del(terms[term]['part_of'])
-    del(terms[term]['develops_from'])
-    del(terms[term]['children'])
-    del(terms[term]['parents'])
-    del(terms[term]['data'])
-    connection.index(index_name, doc_type_name, terms[term], id=term)
-    connection.refresh()
-    count = count + 1
 
-print
-print "Total GO Terms indexed " + str(count)
+# Probably the most important part of the module.
+# This loop calculates the edges for each tree and indexes them in elasticsearch
+for term in terms:
+    for c in terms[term]['closure']:
+        tree = {}
+        tree['source'] = term
+        tree['target'] = c
+        tree['links'] = []
+        for path in nx.all_simple_paths(G, source=term, target=c):
+            for p in path:
+                if len(path) - 1 != path.index(p):
+                    link = {}
+                    link['s'] = p
+                    link['t'] = path[path.index(p) + 1]
+                    link['type'] = G.get_edge_data(p, path[path.index(p) + 1])['r']
+                    if link not in tree['links']:
+                        tree['links'].append(link)
+        connection.index(index_name, doc_type_name, tree, id=count)
+        connection.refresh()
+        count = count + 1
