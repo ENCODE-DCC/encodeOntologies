@@ -307,6 +307,8 @@ for term in terms:
     terms[term]['organs'] = getOrganSlims(term)
 
     connection.index(index_name, doc_type_name, terms[term], id=term)
+    if count%1000 == 0:
+        connection.flush(index=index_name)    
     connection.refresh()
     count = count + 1
 
