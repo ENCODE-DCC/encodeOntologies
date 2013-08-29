@@ -9,7 +9,7 @@ urls = [uberonURL]
 #make connection to elastic search
 connection = ElasticSearch('http://localhost:9200')
 
-index_name = "ontology-new"
+index_name = "ontology_df"
 doc_type_name = "basic"
 
 
@@ -308,7 +308,7 @@ for term in terms:
 
     connection.index(index_name, doc_type_name, terms[term], id=term)
     if count%1000 == 0:
-        connection.flush(index=index_name)    
+        connection.flush(index=index_name)  
     connection.refresh()
     count = count + 1
 

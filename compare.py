@@ -75,19 +75,19 @@ slimTerms = {
         'UBERON:0000478': 'extraembryonic structure'
     }
 
-s = connection.search(query, index='ontology-new', size=20000)
+s = connection.search(query, index='ontology_df', size=20000)
 
 results = s['hits']['hits']
 terms = []
 
 for result in results:
     try:
-        s1 = connection.get('ontology', 'basic', result['_id'])
+        s1 = connection.get('ontology_cl_df', 'basic', result['_id'])
         for k in result['_source'].viewkeys() & s1['_source'].viewkeys():
             if result['_source'][k] != s1['_source'][k]:
                 if k == 'organs' or k == 'systems':
                     if 'CL' in result['_id']:
-                        if result not in terms:
+                        if result['_source'] not in terms:
                             terms.append(result['_source'])
     except:
         print result['_id']
@@ -111,22 +111,18 @@ for term in terms:
         if c in slim_terms:
             for path in nx.all_simple_paths(G, source=term['id'], target=c):
                 rels = []
-                first = 100000
-                uberon_connect = {}
+                uberon_first = 100000
+                first = 0
                 for p in path:
                     if len(path) - 1 != path.index(p):
                         rels.append(G.get_edge_data(p, path[path.index(p) + 1])['r'])
-                    if 'UBERON' in p and first == 100000:
-                        first = path.index(p)
-                        print first
+                    if 'UBERON' in p and uberon_first == 100000:
+                        uberon_first = path.index(p)
 
                 for rel in rels:
                     if rel == 'develops_from':
                         first = rels.index(rel)
                         break
 
-                print path
-                print rels
-                print term['id'] + '\t' + slimTerms[c] + '\t' + path[first] + '\t' + 'develops_from' + '\t' + path[first + 1]
-                print
-                import pdb;pdb.set_trace();
+                print term['id'] + '\t' + slimTerms[c] + '\t' + path[first] + '\t' + 'develops_from' + '\t' + path[first + 1] + '\t' + path[uberon_first - 1] + '\t' + path[uberon_first]
+                break

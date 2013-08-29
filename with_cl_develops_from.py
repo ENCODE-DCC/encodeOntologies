@@ -1,7 +1,5 @@
 # Module downloads, parses all ontology files and indexes them in Elastic Search
 # Note: This is the basic version
-import networkx as nx
-
 from pyelasticsearch import ElasticSearch
 from urllib2 import Request, urlopen
 
@@ -11,7 +9,7 @@ urls = [uberonURL]
 #make connection to elastic search
 connection = ElasticSearch('http://localhost:9200')
 
-index_name = "ontology-tree"
+index_name = "ontology_cl_df"
 doc_type_name = "basic"
 
 
@@ -70,12 +68,13 @@ def getAncestors(goid):
 
 
 def iterativeChildren(nodes):
-    ''' Traverse the tree for the give set of nodes'''
-
     results = []
+    print "Calulating closure ..."
     while 1:
         newNodes = []
         if len(nodes) == 0:
+            print "****** Done *******"
+            print
             break
         for node in nodes:
             results.append(node)
@@ -247,8 +246,6 @@ for url in urls:
                                         if not termParent in terms:
                                             terms[termParent] = {'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'organs': [], 'closure': [], 'slims': [], 'data': []}
                                         terms[termParent]['children'].append(termID)
-
-                            # Handling relationships for each ontology term
                             if 'relationship' in term:
                                 relations = [p.split()[0] for p in term['relationship']]
                                 relationTerms = [p.split()[1] for p in term['relationship']]
@@ -294,40 +291,29 @@ for useL in useless:
 print "Take a break, I have to calculate closures for " + str(len(terms)) + " ontology terms and index them in elasticsearch. Long operation. Sigh!!"
 
 for term in terms:
-    terms[term]['data'] = list(set(terms[term]['parents']) | set(terms[term]['part_of']))
-
-G = nx.DiGraph()
-
-for term in terms:
-    words = iterativeChildren(terms[term]['data'])
-    for word in words:
-        terms[term]['closure'].append(word)
-    for parent in terms[term]['parents']:
-        G.add_edge(term, parent, r='is_a')
-    for part in terms[term]['part_of']:
-        G.add_edge(term, part, r='part_of')
+    if 'CL' in term:
+        terms[term]['data'] = list(set(terms[term]['parents']) | set(terms[term]['part_of']) | set(terms[term]['develops_from']))
+    else:
+        terms[term]['data'] = list(set(terms[term]['parents']) | set(terms[term]['part_of']))
 
 count = 0
 
-# Probably the most important part of the module.
-# This loop calculates the edges for each tree and indexes them in elasticsearch
 for term in terms:
-    for c in terms[term]['closure']:
-        tree = {}
-        tree['source'] = term
-        tree['target'] = c
-        tree['links'] = []
-        for path in nx.all_simple_paths(G, source=term, target=c):
-            for p in path:
-                if len(path) - 1 != path.index(p):
-                    link = {}
-                    link['s'] = p
-                    link['t'] = path[path.index(p) + 1]
-                    link['type'] = G.get_edge_data(p, path[path.index(p) + 1])['r']
-                    if link not in tree['links']:
-                        tree['links'].append(link)
-        connection.index(index_name, doc_type_name, tree, id=count)
-        if count%1000 == 0:
-            connection.flush(index=index_name) 
-        connection.refresh()
-        count = count + 1
+    print term
+    words = iterativeChildren(terms[term]['data'])
+    for word in words:
+        terms[term]['closure'].append(word)
+
+    terms[term]['closure'] = list(set(terms[term]['closure']))
+    terms[term]['closure'].append(term)
+    terms[term]['systems'] = getSystemSlims(term)
+    terms[term]['organs'] = getOrganSlims(term)
+
+    connection.index(index_name, doc_type_name, terms[term], id=term)
+    if count % 1000 == 0:
+        connection.flush(index=index_name)
+    connection.refresh()
+    count = count + 1
+
+print
+print "Total GO Terms indexed " + str(count)
