@@ -10,4 +10,6 @@ Each term is also mapped to appropriate 'Organ System slim' and  'organ slim'.
 Requirements:
 
 1. pyelasticsearch package - https://github.com/rhec/pyelasticsearch
-2. Elastic Search should be installed on localhost or on different server (edit module accordingly)
+2. NetworkX package - http://networkx.github.io/
+3. Elastic Search should be installed on localhost or on different server (edit module accordingly)
+
