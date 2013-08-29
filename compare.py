@@ -3,9 +3,13 @@ from pyelasticsearch import ElasticSearch
 import networkx as nx
 
 #make connection to elastic search
-connection = ElasticSearch('http://localhost:9200')
+connection = ElasticSearch('http://demo-n.encodedcc.org:9200')
 
 query = {'query': {'match_all': {}}}
+
+# index with no develops from at all 'ontology'
+index = 'ontology_df'
+index_compared = 'ontology_cl_df'
 
 slimTerms = {
         'UBERON:0000383': 'musculature of body',
@@ -75,25 +79,29 @@ slimTerms = {
         'UBERON:0000478': 'extraembryonic structure'
     }
 
-s = connection.search(query, index='ontology_df', size=20000)
+s = connection.search(query, index=index, size=20000)
 
 results = s['hits']['hits']
 terms = []
 
+# Loops compares the terms from different indexes
 for result in results:
     try:
-        s1 = connection.get('ontology_cl_df', 'basic', result['_id'])
+        s1 = connection.get(index_compared, 'basic', result['_id'])
         for k in result['_source'].viewkeys() & s1['_source'].viewkeys():
+            # Checking for differences between documents between different indexes
             if result['_source'][k] != s1['_source'][k]:
                 if k == 'organs' or k == 'systems':
+                    # I am worried only about CL terms.
                     if 'CL' in result['_id']:
+                        # I don't want any duplicates
                         if result['_source'] not in terms:
                             terms.append(result['_source'])
     except:
         print result['_id']
 
+# Initializes the graph structure and appends edges for each term
 G = nx.DiGraph()
-
 for term in results:
     for parent in term['_source']['parents']:
         G.add_edge(term['_source']['id'], parent, r='is_a')
@@ -106,9 +114,13 @@ slim_terms = []
 for slim in slimTerms:
     slim_terms.append(slim)
 
+# Pathetic hack to print out the differences between the terms of 2 indexes
 for term in terms:
+    # For each term in closure
     for c in term['closure']:
+        # Go through the method if the closure term is one of the slim term
         if c in slim_terms:
+            # calculates all the possible paths b/w the 2 terms supplied.
             for path in nx.all_simple_paths(G, source=term['id'], target=c):
                 rels = []
                 uberon_first = 100000
