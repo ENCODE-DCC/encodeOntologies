@@ -252,7 +252,7 @@ for url in urls:
                             if 'relationship' in term:
                                 relations = [p.split()[0] for p in term['relationship']]
                                 relationTerms = [p.split()[1] for p in term['relationship']]
-                                relationCheck = [] 
+                                relationCheck = []
                                 for p in term['relationship']:
                                     try:
                                         relationCheck.append(p.split()[2])
