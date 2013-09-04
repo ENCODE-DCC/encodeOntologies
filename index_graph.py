@@ -252,13 +252,20 @@ for url in urls:
                             if 'relationship' in term:
                                 relations = [p.split()[0] for p in term['relationship']]
                                 relationTerms = [p.split()[1] for p in term['relationship']]
+                                relationCheck = [] 
+                                for p in term['relationship']:
+                                    try:
+                                        relationCheck.append(p.split()[2])
+                                    except:
+                                        relationCheck.append("N/A")
                                 count = 0
                                 relationships = ['part_of', 'develops_from']
                                 for relation in relations:
                                     if relation in relationships:
                                         if relationTerms[count] != 'CL:0000812':
                                             if ((relationTerms[count]).split(':'))[0] in term_prefixs:
-                                                terms[termID][relation].append(relationTerms[count])
+                                                if relationCheck[count] == '!' or 'NCBITaxon:9606' in relationCheck[count] or 'source' in relationCheck[count]:
+                                                    terms[termID][relation].append(relationTerms[count])
                                     count = count + 1
                         else:
                             if term['id'][0] not in terms:
@@ -315,19 +322,21 @@ for term in terms:
     for c in terms[term]['closure']:
         tree = {}
         tree['source'] = term
+        tree['source_name'] = terms[term]['name']
         tree['target'] = c
+        tree['target_name'] = terms[c]['name']
         tree['links'] = []
         for path in nx.all_simple_paths(G, source=term, target=c):
             for p in path:
                 if len(path) - 1 != path.index(p):
                     link = {}
-                    link['s'] = p
-                    link['t'] = path[path.index(p) + 1]
+                    link['s'] = {p: terms[p]['name']}
+                    link['t'] = {path[path.index(p) + 1]: terms[path[path.index(p) + 1]]['name']}
                     link['type'] = G.get_edge_data(p, path[path.index(p) + 1])['r']
                     if link not in tree['links']:
                         tree['links'].append(link)
         connection.index(index_name, doc_type_name, tree, id=count)
-        if count%1000 == 0:
-            connection.flush(index=index_name) 
+        if count % 1000 == 0:
+            connection.flush(index=index_name)
         connection.refresh()
         count = count + 1
