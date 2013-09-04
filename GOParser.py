@@ -246,18 +246,23 @@ for url in urls:
                                         if not termParent in terms:
                                             terms[termParent] = {'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'organs': [], 'closure': [], 'slims': [], 'data': []}
                                         terms[termParent]['children'].append(termID)
-                                else:
-                                    print termParent
                             if 'relationship' in term:
                                 relations = [p.split()[0] for p in term['relationship']]
                                 relationTerms = [p.split()[1] for p in term['relationship']]
+                                relationCheck = [] 
+                                for p in term['relationship']:
+                                    try:
+                                        relationCheck.append(p.split()[2])
+                                    except:
+                                        relationCheck.append("N/A")
                                 count = 0
                                 relationships = ['part_of', 'develops_from']
                                 for relation in relations:
                                     if relation in relationships:
                                         if relationTerms[count] != 'CL:0000812':
                                             if ((relationTerms[count]).split(':'))[0] in term_prefixs:
-                                                terms[termID][relation].append(relationTerms[count])
+                                                if relationCheck[count] == '!' or 'NCBITaxon:9606' in relationCheck[count] or 'source' in relationCheck[count]:
+                                                    terms[termID][relation].append(relationTerms[count])
                                     count = count + 1
                         else:
                             if term['id'][0] not in terms:
