@@ -115,6 +115,8 @@ for slim in slimTerms:
     slim_terms.append(slim)
 
 # Pathetic hack to print out the differences between the terms of 2 indexes
+f = open('compare_cl.txt', 'w')
+
 for term in terms:
     # For each term in closure
     for c in term['closure']:
@@ -136,5 +138,20 @@ for term in terms:
                         first = rels.index(rel)
                         break
 
-                print term['id'] + '\t' + slimTerms[c] + '\t' + path[first] + '\t' + 'develops_from' + '\t' + path[first + 1] + '\t' + path[uberon_first - 1] + '\t' + path[uberon_first]
+                pathidlist = [term['id'],path[first],path[first + 1],path[uberon_first - 1],path[uberon_first],c]
+                pathnamelist = []
+                for pathid in pathidlist:
+                    es = connection.get('ontology_df', 'basic', pathid)
+                    pathnamelist.append(es['_source']['name'])
+
+                output = ""
+                delimiter = ";"
+                for outid, outname in zip(pathidlist, pathnamelist):
+                    output = delimiter.join([output,outid,outname])
+
+                f.write(output)
+                f.write('\n')
+                
+                #print term['id'] + '\t' + pathnamelist[0] + '\t' + path[first] + '\t' + pathnamelist[1] + '\t' + path[first + 1] + '\t' + pathnamelist[2] + '\t' + path[uberon_first - 1] + '\t' + pathnamelist[3] + '\t' + path[uberon_first] + '\t' + pathnamelist[4] + '\t' + slimTerms[c] + '\t' + pathnamelist[5]
                 break
+f.close()
