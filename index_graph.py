@@ -335,8 +335,8 @@ for term in terms:
                     link['type'] = G.get_edge_data(p, path[path.index(p) + 1])['r']
                     if link not in tree['links']:
                         tree['links'].append(link)
-        connection.index(index_name, doc_type_name, tree, id=count)
-        if count % 1000 == 0:
+        if count % 5000 == 0:
+            connection.index(index_name, doc_type_name, tree, id=count)
             connection.flush(index=index_name)
         connection.refresh()
         count = count + 1
