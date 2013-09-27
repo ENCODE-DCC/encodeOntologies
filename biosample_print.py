@@ -6,7 +6,7 @@ connection = ElasticSearch('http://demo-n.encodedcc.org:9200')
 query = {'query': {'match_all': {}}, 'fields': ['accession', 'biosample_term_name', 'biosample_term_id', 'organ_slims', 'system_slims']}
 
 # index with no develops from at all 'ontology'
-index = 'biosamples'
+index = 'biosample'
 
 s = connection.search(query, index=index, size=1000)
 for data in s['hits']['hits']:
