@@ -86,6 +86,22 @@ def iterativeChildren(nodes):
     return results
 
 
+def iterativeDev(nodes):
+    results = []
+    while 1:
+        newNodes = []
+        if len(nodes) == 0:
+            break
+        for node in nodes:
+            results.append(node)
+            if terms[node]['data_with_develops_from']:
+                for child in terms[node]['data_with_develops_from']:
+                    if child not in results:
+                        newNodes.append(child)
+        nodes = newNodes
+    return results
+
+
 def getDevelopmentSlims(goid):
     ''' Get Developmental Slims '''
 
@@ -96,7 +112,7 @@ def getDevelopmentSlims(goid):
         'UBERON:0000925': 'endoderm'
     }
     for slimTerm in slimTerms:
-        if slimTerm in terms[term]['closure']:
+        if slimTerm in terms[term]['closure_with_develops_from']:
             slims.append(slimTerms[slimTerm])
     return slims
 
@@ -232,7 +248,7 @@ for url in urls:
                             termParents = [p.split()[0] for p in term['is_a']]
 
                             if not termID in terms:
-                                terms[termID] = {'id': '', 'name': '', 'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'organs': [], 'closure': [], 'slims': [], 'data': []}
+                                terms[termID] = {'id': '', 'name': '', 'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'organs': [], 'closure': [], 'slims': [], 'data': [], 'closure_with_develops_from': [], 'data_with_develops_from': []}
 
                             #append termID and termName to the dict
                             terms[termID]['id'] = termID
@@ -244,12 +260,12 @@ for url in urls:
                                     if termParent != 'CL:0000812':
                                         terms[termID]['parents'].append(termParent)
                                         if not termParent in terms:
-                                            terms[termParent] = {'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'organs': [], 'closure': [], 'slims': [], 'data': []}
+                                            terms[termParent] = {'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'organs': [], 'closure': [], 'slims': [], 'data': [], 'closure_with_develops_from': [], 'data_with_develops_from': []}
                                         terms[termParent]['children'].append(termID)
                             if 'relationship' in term:
                                 relations = [p.split()[0] for p in term['relationship']]
                                 relationTerms = [p.split()[1] for p in term['relationship']]
-                                relationCheck = [] 
+                                relationCheck = []
                                 for p in term['relationship']:
                                     try:
                                         relationCheck.append(p.split()[2])
@@ -266,7 +282,7 @@ for url in urls:
                                     count = count + 1
                         else:
                             if term['id'][0] not in terms:
-                                terms[termID] = {'id': '', 'name': '', 'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'organs': [], 'closure': [], 'slims': [], 'data': []}
+                                terms[termID] = {'id': '', 'name': '', 'parents': [], 'children': [], 'part_of': [], 'develops_from': [], 'organs': [], 'closure': [], 'slims': [], 'data': [], 'closure_with_develops_from': [], 'data_with_develops_from': []}
                                 #append termID and termName to the dict
                                 terms[termID]['id'] = termID
                                 terms[termID]['name'] = termName
@@ -299,23 +315,33 @@ print "Take a break, I have to calculate closures for " + str(len(terms)) + " on
 
 for term in terms:
     terms[term]['data'] = list(set(terms[term]['parents']) | set(terms[term]['part_of']))
-
-count = 0
+    terms[term]['data_with_develops_from'] = list(set(terms[term]['data']) | set(terms[term]['develops_from']))
 
 for term in terms:
+    
     print term
     words = iterativeChildren(terms[term]['data'])
     for word in words:
         terms[term]['closure'].append(word)
 
+    d = iterativeDev(terms[term]['data_with_develops_from'])
+    for dd in d:
+        terms[term]['closure_with_develops_from'].append(dd)
+    
     terms[term]['closure'] = list(set(terms[term]['closure']))
     terms[term]['closure'].append(term)
+    
+    terms[term]['closure_with_develops_from'] = list(set(terms[term]['closure_with_develops_from']))
+    terms[term]['closure_with_develops_from'].append(term)
+
     terms[term]['systems'] = getSystemSlims(term)
     terms[term]['organs'] = getOrganSlims(term)
-
+    terms[term]['developmental'] = getDevelopmentSlims(term)
+    
+    # Indexing the data in ElasticSearch
     connection.index(index_name, doc_type_name, terms[term], id=term)
-    if count%1000 == 0:
-        connection.flush(index=index_name)    
+    if count % 1000 == 0:
+        connection.flush(index=index_name)
     connection.refresh()
     count = count + 1
 
