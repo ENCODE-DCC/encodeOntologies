@@ -1,4 +1,4 @@
-encodedES
+encodeOntologies
 =============
 
 This module downloads Uberon (merged) ontology and parses into a dictionary.
